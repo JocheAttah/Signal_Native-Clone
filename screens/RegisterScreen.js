@@ -1,8 +1,9 @@
 import { StatusBar } from "expo-status-bar";
-import React, { useState } from "react";
+import React, { useLayoutEffect, useState } from "react";
 import { KeyboardAvoidingView } from "react-native";
 import { StyleSheet, View } from "react-native";
 import { Button, Input, Text } from "react-native-elements";
+import { auth } from "../firebase";
 
 const RegisterScreen = ({ navigation }) => {
   const [name, setName] = useState("");
@@ -10,7 +11,23 @@ const RegisterScreen = ({ navigation }) => {
   const [password, setPassword] = useState("");
   const [imageUrl, setImageUrl] = useState("");
 
-  const register = () => {};
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerBackTitle: "Back to Login",
+      headerTitleStyle: { marginLeft: -5 },
+    });
+  }, [navigation]);
+
+  const register = () => {
+      auth.createUserWithEmailAndPassword(email, password)
+      .then((authUser) =>{
+          authUser.user.updateProfile({
+              displayName: name,
+              photoURL: imageUrl ||"http://blog.mozilla.org/internetcitizen/files/2018/08/signal-logo.png",
+          })
+      })
+      .catch((error) => alert(error.message))
+  };
   return (
     // <View behavior="padding" style={styles.container}>
     <KeyboardAvoidingView behavior="padding" style={styles.container}>
@@ -73,10 +90,11 @@ const styles = StyleSheet.create({
     // marginTop:,
   },
   inputContainer: {
-      width: 300,
+    width: 300,
   },
   button: {
-      width: 200,
-      marginTop: 10,
+    width: 200,
+    marginTop: 10,
   },
 });
+ 
