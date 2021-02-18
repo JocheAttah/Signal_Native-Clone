@@ -8,9 +8,14 @@ import { SafeAreaView } from "react-native";
 import { KeyboardAvoidingView, Platform } from "react-native";
 import { ScrollView, TextInput } from "react-native-gesture-handler";
 import { useState } from "react";
+import { Keyboard, TouchableWithoutFeedback } from "react-native";
+import { db, auth } from "../firebase";
+import * as firebase from "firebase";
 
 const ChatScreen = ({ navigation, route }) => {
   const [input, setInput] = useState("");
+  const [messages, setMessages] = useState([]);
+
   useLayoutEffect(() => {
     navigation.setOptions({
       title: "Chat",
@@ -71,9 +76,30 @@ const ChatScreen = ({ navigation, route }) => {
   }, [navigation]);
 
   const sendMessage = () => {
-
-  }
-
+    Keyboard.dismiss();
+    db.collection("chats").doc(route.params.id).collection("messages").add({
+      timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+      messages: input,
+      displayName: auth.currentUser.displayName,
+      email: auth.currentUser.email,
+      photoURL: auth.currentUser.photoURL,
+    });
+    setInput("");
+  };
+  useLayoutEffect(() => {
+    const unsubscribe = db
+      .collection("chats")
+      .doc(route.params.id)
+      .collection("messages")
+      .orderBy("timestamp", "desc")
+      .onSnapshot((snapshot) => setMessages(
+        snapshot.docs.map(doc => ({
+          id: doc.id,
+          data: doc.data()
+        }))
+      ));
+      return unsubscribe;
+  }, [route]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "white " }}>
@@ -83,21 +109,23 @@ const ChatScreen = ({ navigation, route }) => {
         style={styles.container}
         keyboardVerticalOffset={90}
       >
-        <>
-          <ScrollView>{/* chat goes here */}</ScrollView>
-          <View style={styles.footer}>
-            <TextInput
-              value={input}
-              onChangeText={(text) => setInput(text)}
-              placeholder="Signal Message"
-              style={styles.textInput}
-            />
-            <TouchableOpacity onPress={sendMessage} activeOpacity={0.5}>
-                <Ionicons name='send' size={24} color="#2B68E6" />
-
-            </TouchableOpacity>
-          </View>
-        </>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <>
+            <ScrollView>{/* chat goes here */}</ScrollView>
+            <View style={styles.footer}>
+              <TextInput
+                value={input}
+                onChangeText={(text) => setInput(text)}
+                onSubmitEditing={sendMessage}
+                placeholder="Type Your Message Here "
+                style={styles.textInput}
+              />
+              <TouchableOpacity onPress={sendMessage} activeOpacity={0.5}>
+                <Ionicons name="send" size={24} color="#2B68E6" />
+              </TouchableOpacity>
+            </View>
+          </>
+        </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -106,7 +134,21 @@ const ChatScreen = ({ navigation, route }) => {
 export default ChatScreen;
 
 const styles = StyleSheet.create({
-  contanier: {},
-  foooter: {},
-  textInput: {},
+  container: { flex: 1 },
+  footer: {
+    flexDirection: "row",
+    width: "100%",
+    alignItems: "center",
+    padding: 15,
+  },
+  textInput: {
+    bottom: 0,
+    height: 40,
+    flex: 1,
+    marginRight: 15,
+    backgroundColor: "#ececec",
+    padding: 10,
+    color: "grey",
+    borderRadius: 30,
+  },
 });
