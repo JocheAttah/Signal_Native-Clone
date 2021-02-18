@@ -79,7 +79,7 @@ const ChatScreen = ({ navigation, route }) => {
     Keyboard.dismiss();
     db.collection("chats").doc(route.params.id).collection("messages").add({
       timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-      messages: input,
+      message: input,
       displayName: auth.currentUser.displayName,
       email: auth.currentUser.email,
       photoURL: auth.currentUser.photoURL,
@@ -91,14 +91,16 @@ const ChatScreen = ({ navigation, route }) => {
       .collection("chats")
       .doc(route.params.id)
       .collection("messages")
-      .orderBy("timestamp", "desc")
-      .onSnapshot((snapshot) => setMessages(
-        snapshot.docs.map(doc => ({
-          id: doc.id,
-          data: doc.data()
-        }))
-      ));
-      return unsubscribe;
+      .orderBy("timestamp", "asc")
+      .onSnapshot((snapshot) =>
+        setMessages(
+          snapshot.docs.map((doc) => ({
+            id: doc.id,
+            data: doc.data(),
+          }))
+        )
+      );
+    return unsubscribe;
   }, [route]);
 
   return (
@@ -111,7 +113,50 @@ const ChatScreen = ({ navigation, route }) => {
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <>
-            <ScrollView>{/* chat goes here */}</ScrollView>
+            <ScrollView>
+              {messages.map(({ id, data }) =>
+                // if the email is the same as the login in email
+                data.email === auth.currentUser.email ? (
+                  <View key={id} style={styles.receiver}>
+                    {/* show as receiver */}
+                    <Avatar
+                      position="absolute"
+                      bottom={-15}
+                      right={-5}
+                      //web
+                      containerStyle={{
+                        position: "absolute",
+                        bottom: -15,
+                        right: -5,
+                      }}
+                      rounded
+                      size={30}
+                      source={{ uri: data.photoURL }}
+                    />
+                    <Text style={styles.receiverText}>{data.message}</Text>
+                  </View>
+                ) : (
+                  <View key={id} style={styles.sender}>
+                    {/* else show as sendder */}
+                    <Avatar
+                      position="absolute"
+                      bottom={-15}
+                      left={-5}
+                      //web
+                      containerStyle={{
+                        position: "absolute",
+                        bottom: -15,
+                        left: -5,
+                      }}
+                      rounded 
+                      size={30}
+                      source={{ uri: data.photoURL }}
+                    />
+                    <Text style={styles.senderText}>{data.message}</Text>
+                  </View>
+                )
+              )}
+            </ScrollView>
             <View style={styles.footer}>
               <TextInput
                 value={input}
@@ -135,6 +180,25 @@ export default ChatScreen;
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  receiver: {
+    padding: 15,
+    backgroundColor: "#ECECEC",
+    alignSelf: "flex-end",
+    borderRadius: 20,
+    marginRight: 15,
+    marginBottom: 20,
+    maxWidth: "80%",
+    position: "relative",
+  },
+  sender: {
+    padding: 15,
+    backgroundColor: "#2b68e6",
+    alignSelf: "flex-start",
+    borderRadius: 20,
+    margin: 15,
+    maxWidth: "80%",
+    position: "relative",
+  },
   footer: {
     flexDirection: "row",
     width: "100%",
